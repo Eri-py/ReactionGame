@@ -23,15 +23,17 @@ class startWindow:
         # functions
         def startClick():
             mainWindow.pack_forget()
-            root.destroy()
+            root.destroy
             game()
 
         global seconds
         seconds = 0
 
         def menuSelect(entry):
+            global seconds
+            if entry == "10 seconds":
+                seconds = 5
             if entry == "30 seconds":
-                global seconds
                 seconds = 30
             elif entry == "45 seconds":
                 seconds = 45
@@ -39,8 +41,6 @@ class startWindow:
                 seconds = 60
             elif entry == "2 minutes":
                 seconds = 120
-            else:
-                root.mainloop()
 
         # labels
         welcomeFrame = CTkFrame(master=mainWindow, corner_radius=1000)
@@ -52,7 +52,7 @@ class startWindow:
 
         # menu
         options = [
-            " ",
+            "10 seconds",
             "30 seconds",
             "45 seconds",
             "1 minute",
@@ -71,6 +71,7 @@ class startWindow:
             command=startClick,
         )
         startButton.pack(pady=10)
+        root.mainloop()
 
 
 class game:
@@ -98,6 +99,7 @@ class game:
         redBall_rectangle = redBall.get_rect(topleft=(0, 200))
 
         # score track
+        global no_of_click
         no_of_click = 0
 
         Finished = False
@@ -112,7 +114,7 @@ class game:
                     exit()
 
             # timer
-            initial_time = seconds + 1
+            initial_time = seconds
             time_spent = initial_time - int(pygame.time.get_ticks() / 1000)
             if time_spent > 0:
                 font = pygame.font.Font("ReactionTimeGame/fonts/pixel.ttf", 25)
@@ -122,9 +124,8 @@ class game:
                 )
                 screen.blit(sample_text, sample_text_rectangle)
             else:
-                print("game complete")
-                pygame.mouse.set_visible(False)
-                break
+                gameResult()
+                Finished = True
 
             # mouse
             mousePostion = pygame.mouse.get_pos()
@@ -142,7 +143,71 @@ class game:
             Clock.tick(90)
 
 
-startWindow()
+class gameResult:
+    def __init__(self, master=None, **kwargs):
+        pygame.init()
+        gameScreenWidth = screenWidth - 1000
+        gameScreenHeight = screenHeight - 500
+        screen = pygame.display.set_mode((gameScreenWidth, gameScreenHeight))
+        pygame.display.set_caption("Reaction Time Game")
+        Clock = pygame.time.Clock()
+
+        # background
+        background = pygame.image.load(
+            "ReactionTimeGame/Images/background/sky.jpg"
+        ).convert_alpha()
+        background = pygame.transform.scale(
+            background, (gameScreenWidth, gameScreenHeight)
+        )
+
+        # reaction time
+        if no_of_click == 0:
+            inal_score = font.render("Final score: None", False, "Black")
+        Avg_resp_time = seconds / no_of_click
+        reaction_time =  Avg_resp_time * 1000
+        
+
+        # text
+        font = pygame.font.Font("ReactionTimeGame/fonts/pixel.ttf", 40)
+        final_score = font.render(f"Final score: {round(reaction_time)} ms", False, "Black")
+        final_score_rectangle = final_score.get_rect(
+            midbottom=(gameScreenWidth / 2, gameScreenHeight / 2-30)
+        )
+
+        # ball
+        redBall = pygame.image.load(
+            "ReactionTimeGame/Images/balls/red.png"
+        ).convert_alpha()
+        redBall = pygame.transform.scale(redBall, (90, 90))
+        redBall_rectangle = redBall.get_rect(topleft=(0,gameScreenHeight / 2 + 20 ))
+        
+        Finished = False
 
 
-root.mainloop()
+        while not Finished:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    exit()
+
+            # background
+            screen.blit(background, (0, 0))
+
+            # text
+            screen.blit(final_score, final_score_rectangle)
+
+            #
+            mouse_position = pygame.mouse.get_pos()
+
+            #ball
+            screen.blit(redBall,redBall_rectangle)
+            redBall_rectangle.x +=4
+            if redBall_rectangle.left == gameScreenWidth: redBall_rectangle.left = 0
+                    
+
+            pygame.display.update()
+            Clock.tick(90)
+
+
+app = startWindow()
+
