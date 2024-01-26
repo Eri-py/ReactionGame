@@ -31,8 +31,6 @@ class startWindow:
 
         def menuSelect(entry):
             global seconds
-            if entry == "10 seconds":
-                seconds = 5
             if entry == "30 seconds":
                 seconds = 30
             elif entry == "45 seconds":
@@ -52,7 +50,6 @@ class startWindow:
 
         # menu
         options = [
-            "10 seconds",
             "30 seconds",
             "45 seconds",
             "1 minute",
