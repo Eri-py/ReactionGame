@@ -86,7 +86,7 @@ class Game:
                 if event.type == pygame.KEYDOWN:
                     pygame.quit()
                     game = Game()
-                    game.run
+                    game.run()
             
     def display_score(self):
         font = pygame.font.Font(os.path.join(main_dir, r"fonts\pixel.ttf"), 40)
