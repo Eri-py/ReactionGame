@@ -1,118 +1,119 @@
-import pygame
-import os
+import pygame, os, sys
+import copy
+from pygame.image import load
+from pygame.mouse import get_pos as mouse_pos
 from pathlib import Path
 from customtkinter import *
-from sys import exit
 from random import randint
 
-root = CTk()
-screen_width = root.winfo_screenwidth()
-screen_height = root.winfo_screenheight()
-main_dir = Path(__file__).resolve().parent
-pygame.init()
-game_screen_width = screen_width / 1.2
-game_screen_height = screen_height / 1.2
+main_dir  = Path(__file__).resolve().parent
 
-class StartScreen:
+class Startscreen:
     def __init__(self):
-        window_width = int(screen_width/5)
-        window_height = int(screen_height/4)
-        x = (screen_width / 2) - (window_width/2)
-        y = (screen_height / 2) - (window_height/2)
-        root.geometry(f"{window_width}x{window_height}+{int(x)}+{int(y)}")
-        time_select = ["30 seconds", "45 seconds", "1 minute", "2 minutes"]
-        self.game_menu = CTkComboBox(root, values= time_select , width = 200,command= self.time_selected)
-        self.game_menu.set("30 seconds")
-        self.initial_time = 30
-        self.start_button = CTkButton(root, text="start", fg_color= "black", hover_color="black", command= self.start_click)
-
-    def start_click(self):
-        root.quit()
-        game = Game(self.initial_time)
-        game.run()
-
-    def display(self):
-        self.game_menu.pack(pady = 30)
-        self.start_button.pack(pady = 20)
-        root.mainloop()
+        root = CTk()
+        self.time = 0
+    def timer(self):
+        self.time = input("Enter a Time: ")
+        return int(self.time)
     
-    def time_selected(self, entry):
-        if entry == "30 seconds": self.initial_time = 30
-        if entry == "45 seconds": self.initial_time= 45
-        if entry == "1 minute": self.initial_time = 60
-        if entry == "2 minutes": self.initial_time = 120
+class Ball(pygame.sprite.Sprite):
+    def __init__(self, groups, pos):
+        super().__init__(groups)
+        #display surface
+        self.display_surface = pygame.display.get_surface()
+        #sprites
+        ball_image = load(os.path.join(main_dir, r"Images\balls\red.png"))
+        self.image = pygame.transform.scale(ball_image, (90, 90)).convert_alpha()
+        self.rect = self.image.get_rect(center = (pos))
+        #no of clicks
+        self.click = 0
+
+    def random_movement(self, event):
+        if self.rect.collidepoint(mouse_pos()):
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                self.rect.x = randint(20, 1180)
+                self.rect.y = randint(70, 660)
+                self.click += 1
         
-class Text:
-    def initial_time(self, time):
-        self.time_left = time 
-
-    def __init__(self):
-        self.font_dir = os.path.join(main_dir, "fonts\pixel.ttf")
-        self.font = pygame.font.Font(self.font_dir, 0)
-        self.display = self.font.render("", False, "Black")
-        self.display_rec = self.display.get_rect()
-        self.time_left = 0
-
-    def regular_text(self, text, size, position):
-        self.font = pygame.font.Font(self.font_dir, size)
-        self.display = self.font.render(text, False, "black")
-        self.display_rec = self.display.get_rect(center = position)
-
-    def timer(self, size, position):
-        self.font = pygame.font.Font(self.font_dir, size)
-        self.time_left -= 1/165
-        self.display = self.font.render(f"{int(self.time_left)}", False, "black")
-        self.display_rec = self.display.get_rect(center = position)
-
-class Ball:
-    def __init__(self, ball_image):
-        self.ball_image = pygame.transform.scale(pygame.image.load(os.path.join(main_dir, ball_image)), (100, 100))
-        self.ball_image_rec = self.ball_image.get_rect(topleft=(0, 200))
-        self.no_of_click = 0
-
-    def random_movement(self):
-        mouse_pos = pygame.mouse.get_pos()
-        if self.ball_image_rec.collidepoint(mouse_pos) and any(pygame.mouse.get_pressed()):
-            self.ball_image_rec.x = randint(20, game_screen_width - 100)
-            self.ball_image_rec.y = randint(70, game_screen_height - 100)
-            self.no_of_click += 1
-
-    def straight_movement(self, y):
-        self.ball_image_rec.y = y
-        self.ball_image_rec.x += 1.5
-        if self.ball_image_rec.x == game_screen_width: self.ball_image_rec.x = 0
-
+    def horizontal_movement(self):
+        self.rect.y = 60
+        self.rect.x += 3
+        if self.rect.x >= 1280:
+            self.rect.left = 0
+    
 class Game:
-    def __init__(self, time):
+    def __init__(self):
         pygame.init()
-        self.screen = pygame.display.set_mode((int(screen_width / 1.2), int(screen_height / 1.2)))
-        pygame.display.set_caption("Reaction Time Game")
+        #timer
+        self.start_time = Startscreen()
+        self.start_time = self.start_time.timer()
+        self.time_used = self.start_time
+        self.seconds = pygame.USEREVENT + 1
+        pygame.time.set_timer(self.seconds, 1000)
+        #initiate game
+        self.screen = pygame.display.set_mode((1280, 760))
         self.clock = pygame.time.Clock()
-        self.background_image = pygame.transform.scale(pygame.image.load(os.path.join(main_dir, "Images/background/sky.jpg")).convert_alpha(), (game_screen_width,game_screen_height))
-        self.ball = Ball("Images/balls/red.png")
-        self.timer = Text()
-        self.timer.initial_time(time)
-
-    def run(self):
-        while True:
-            self.event_handle()
-            self.render()
-            self.timer.timer(23,(game_screen_width/2, 20))
-            pygame.display.update()
-            self.clock.tick(165)
+        pygame.display.set_caption("Reaction Time Game")
+        #background
+        background = load(os.path.join(main_dir, r"Images\background\sky.jpg"))
+        self.background = pygame.transform.scale(background, (1280, 760))
+        #ball
+        self.visible_sprite = pygame.sprite.Group()
+        self.ball = Ball([self.visible_sprite], (randint(80, 1180),randint(80, 660)))
+        #game control
+        self.game_active = True
+        #time left text
+        self.font = pygame.font.Font(os.path.join(main_dir, r"fonts\pixel.ttf"), 25)
+        self.time_left = self.font.render(f"Time Left: {self.start_time}", False, "black")
+        self.time_left_rect = self.time_left.get_rect(center = (640, 40))
 
     def event_handle(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-                exit()
-        self.ball.random_movement()
+                sys.exit()
+            
+            if self.game_active:
+                if event.type == self.seconds:
+                    self.start_time -= 1
+                    self.time_left = self.font.render(f"Time Left: {self.start_time}", False, "black")
+                    #stop game
+                    if self.start_time == 0: 
+                        self.game_active = False
+                self.ball.random_movement(event)
+            
+            if not self.game_active:
+                if event.type == pygame.KEYDOWN:
+                    pygame.quit()
+                    game = Game()
+                    game.run
+            
+    def display_score(self):
+        font = pygame.font.Font(os.path.join(main_dir, r"fonts\pixel.ttf"), 40)
+        if self.ball.click == 0:
+            score = font.render("Score: None", False, "black")
+        else:
+            avg_resp_time = self.time_used / self.ball.click
+            reaction_time = avg_resp_time * 1000
+            score = font.render(f"Score: {int(reaction_time)}", False, "black")
+        score_rect  = score.get_rect(center = (640, 380))
+        self.screen.blit(score, score_rect)
 
-    def render(self):
-        self.screen.blit(self.background_image, (0, 0))
-        self.screen.blit(self.ball.ball_image, self.ball.ball_image_rec)
-        self.screen.blit(self.timer.display, self.timer.display_rec)
+    def run(self):
+        while True:
+            self.screen.blit(self.background, (0,0))
+            self.visible_sprite.draw(self.screen)
+            if self.game_active:   
+                self.screen.blit(self.time_left, self.time_left_rect)
+            else:
+                self.ball.horizontal_movement()
+                self.display_score()
 
+            self.event_handle()
+            pygame.display.update()
+            self.clock.tick(165)
 
-app = StartScreen()
-app.display()
+if __name__ == "__main__":
+    game = Game()
+    game.run()
+    
